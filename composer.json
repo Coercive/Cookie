@@ -1,0 +1,28 @@
+{
+    "name": "coercive/cookie",
+    "type": "library",
+    "description": "Coercive Security Cookie",
+    "homepage": "http://coercive.fr",
+    "license": "GNU",
+    "authors": [
+        {
+            "name": "Anthony Moral",
+            "email": "contact@coercive.fr",
+            "homepage": "http://coercive.fr"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0",
+        "coercive/crypt": "1.*"
+    },
+    "autoload": {
+        "psr-4": { "Coercive\\Security\\Cookie\\": "" }
+    },
+    "minimum-stability" : "dev",
+    "prefer-stable" : true,
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1-dev"
+        }
+    }
+}
