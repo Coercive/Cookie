@@ -1,7 +1,7 @@
 Coercive Security Cookie
 ========================
 
-Cookie vous permet de créer/lire/supprimer des cookies normaux ou cryptés.
+Cookie allows you to create / read / delete normal or encrypted cookies.
 
 Get
 ---
