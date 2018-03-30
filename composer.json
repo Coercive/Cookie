@@ -16,11 +16,11 @@
         }
     ],
     "require": {
-        "php": ">=5.4.0",
+        "php": ">=7.1",
         "coercive/crypt": "1.*"
     },
     "autoload": {
-        "psr-4": { "Coercive\\Security\\Cookie\\": "" }
+        "psr-4": { "Coercive\\Security\\Cookie\\": "dist/" }
     },
     "minimum-stability" : "dev",
     "prefer-stable" : true,
