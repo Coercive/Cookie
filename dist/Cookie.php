@@ -8,14 +8,17 @@ use Coercive\Security\Crypt\Crypt;
  * Cookie
  *
  * @package 	Coercive\Security\Cookie
- * @link		@link https://github.com/Coercive/Crypt
+ * @link		https://github.com/Coercive/Crypt
  *
  * @author  	Anthony Moral <contact@coercive.fr>
- * @copyright   2018 Anthony Moral
+ * @copyright   2020 Anthony Moral
  * @license 	MIT
  */
 class Cookie
 {
+	/** @var bool The enable/disable system status */
+	private $state = null;
+
 	/** @var string The cookie path */
 	private $path = '';
 
@@ -48,7 +51,8 @@ class Cookie
 	 * @param string $cipher
 	 * @return string
 	 */
-	private function decrypt(string $cipher) {
+	private function decrypt(string $cipher)
+	{
 		return Crypt::decrypt($cipher, Crypt::createNewKey($this->crypt));
 	}
 
@@ -68,6 +72,43 @@ class Cookie
 		$this->domain = $domain;
 		$this->secure = $secure;
 		$this->httponly = $httponly;
+		$this->state = true;
+	}
+
+	/**
+	 * SETTER System Status
+	 *
+	 * @param string $crypt
+	 * @return Cookie
+	 */
+	public function setState(bool $state): Cookie
+	{
+		$this->state = $state;
+		return $this;
+	}
+
+	/**
+	 * SETTER Enable System Status
+	 *
+	 * @param string $crypt
+	 * @return Cookie
+	 */
+	public function enable(): Cookie
+	{
+		$this->state = true;
+		return $this;
+	}
+
+	/**
+	 * SETTER Disable System Status
+	 *
+	 * @param string $crypt
+	 * @return Cookie
+	 */
+	public function disable(): Cookie
+	{
+		$this->state = false;
+		return $this;
 	}
 
 	/**
@@ -136,8 +177,11 @@ class Cookie
 	 * @param string $name
 	 * @return string
 	 */
-	public function get(string $name)
+	public function get(string $name): string
 	{
+		if(!$this->state) {
+			return '';
+		}
 	    return !$name || !isset($_COOKIE[$name]) ? '' : (string) $_COOKIE[$name];
 	}
 
@@ -151,8 +195,10 @@ class Cookie
 	 */
 	public function set(string $name, string $value, int $expire = 0): bool
 	{
-	    # Empty
-	    if (!$name) { return false; }
+	    # Empty or disabled
+	    if (!$this->state || !$name) {
+	    	return false;
+	    }
 
 	    # Set
 		$_COOKIE[$name] = $value;
@@ -167,8 +213,10 @@ class Cookie
 	 */
 	public function getSafe(string $name): string
 	{
-	    # Empty
-	    if (!$name || !isset($_COOKIE[$name])) { return ''; }
+	    # Empty or disabled
+	    if (!$this->state || !$name || !isset($_COOKIE[$name])) {
+	    	return '';
+	    }
 
 	    # Decrypt
 	    try {
@@ -193,8 +241,10 @@ class Cookie
 	 */
 	public function setSafe(string $name, string $value, int $expire = 0): bool
 	{
-		# Empty
-	    if (!$name) { return false; }
+		# Empty or disabled
+	    if (!$this->state || !$name) {
+	    	return false;
+	    }
 
 	    # Crypt
 	    try {
@@ -218,6 +268,9 @@ class Cookie
 	 */
 	public function delete(string $name): bool
 	{
+		if(!$this->state) {
+			return false;
+		}
 	    $state = setcookie($name, false, time() - 3600, $this->path, $this->domain, $this->secure, $this->httponly);
 		unset($_COOKIE[$name]);
 		return $state;
