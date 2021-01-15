@@ -18,20 +18,11 @@ use Coercive\Security\Crypt\Crypt;
  */
 class Cookie
 {
-	const ANONYMISE_MODE_DISABLED = 0;
-	const ANONYMISE_MODE_CRYPT = 1;
-	const ANONYMISE_MODE_HASH = 2;
-	const ANONYMISE_MODES = [
-		self::ANONYMISE_MODE_DISABLED,
-		self::ANONYMISE_MODE_CRYPT,
-		self::ANONYMISE_MODE_HASH,
-	];
-
 	/** @var bool The enable/disable system status */
 	private $state = null;
 
-	/** @var int Anonymise status/mode */
-	private $anonymise = self::ANONYMISE_MODE_DISABLED;
+	/** @var bool Anonymise status */
+	private $anonymise = false;
 
 	/** @var string The cookie path */
 	private $path = '';
@@ -59,7 +50,12 @@ class Cookie
 	 */
 	private function encrypt(string $text): string
 	{
-		return Crypt::encrypt($text, Crypt::createNewKey($this->crypt));
+		try {
+			return Crypt::encrypt($text, Crypt::createNewKey($this->crypt));
+		}
+		catch (Exception $e) {
+			return '';
+		}
 	}
 
 	/**
@@ -70,7 +66,12 @@ class Cookie
 	 */
 	private function decrypt(string $cipher)
 	{
-		return Crypt::decrypt($cipher, Crypt::createNewKey($this->crypt));
+		try {
+			return Crypt::decrypt($cipher, Crypt::createNewKey($this->crypt));
+		}
+		catch (Exception $e) {
+			return '';
+		}
 	}
 
 	/**
@@ -92,44 +93,7 @@ class Cookie
 	 */
 	private function getAnonymous(string $name): string
 	{
-		switch ($this->anonymise)
-		{
-			case self::ANONYMISE_MODE_DISABLED:
-				return $name;
-			case self::ANONYMISE_MODE_CRYPT:
-				foreach (array_keys($_COOKIE) as $key) {
-					if($this->decrypt($key) === $name) {
-						return $key;
-					}
-				}
-				return '';
-			case self::ANONYMISE_MODE_HASH:
-				return $this->hash($name);
-			default:
-				return '';
-		}
-	}
-
-	/**
-	 * Set name for anonymous cookie
-	 *
-	 * @param string $name
-	 * @return string
-	 */
-	private function setAnonymous(string $name): string
-	{
-		switch ($this->anonymise)
-		{
-			case self::ANONYMISE_MODE_DISABLED:
-				return $name;
-			case self::ANONYMISE_MODE_CRYPT:
-				$this->delete($name);
-				return $this->encrypt($name);
-			case self::ANONYMISE_MODE_HASH:
-				return $this->hash($name);
-			default:
-				return '';
-		}
+		return $this->anonymise ? $this->hash($name) : $name;
 	}
 
 	/**
@@ -155,15 +119,13 @@ class Cookie
 	/**
 	 * Anonymise cookie
 	 *
-	 * @param int $mode [optional]
+	 * @param bool $enable
 	 * @param string $salt [optional]
 	 * @return $this
 	 */
-	public function anonymize(int $mode = self::ANONYMISE_MODE_DISABLED, string $salt = null): Cookie
+	public function anonymize(bool $enable, string $salt = null): Cookie
 	{
-		if(in_array($mode, self::ANONYMISE_MODES, true)) {
-			$this->anonymise = $mode;
-		}
+		$this->anonymise = $enable;
 		if(null !== $salt) {
 			$this->salt = $salt;
 		}
@@ -288,7 +250,7 @@ class Cookie
 	 */
 	public function set(string $name, string $value, int $expire = 0): bool
 	{
-	    if (!$this->state || !$name || !($key = $this->setAnonymous($name))) {
+	    if (!$this->state || !$name || !($key = $this->getAnonymous($name))) {
 	    	return false;
 	    }
 
@@ -328,7 +290,7 @@ class Cookie
 	 */
 	public function setSafe(string $name, string $value, int $expire = 0): bool
 	{
-	    if (!$this->state || !$name || !($key = $this->setAnonymous($name))) {
+	    if (!$this->state || !$name || !($key = $this->getAnonymous($name))) {
 	    	return false;
 	    }
 
