@@ -7,17 +7,31 @@ use Coercive\Security\Crypt\Crypt;
 /**
  * Cookie
  *
- * @package 	Coercive\Security\Cookie
- * @link		https://github.com/Coercive/Crypt
+ * One Cookie to rule them all.
  *
- * @author  	Anthony Moral <contact@coercive.fr>
- * @copyright   2020 Anthony Moral
- * @license 	MIT
+ * @package Coercive\Security\Cookie
+ * @link https://github.com/Coercive/Crypt
+ *
+ * @author Anthony Moral <contact@coercive.fr>
+ * @copyright 2021 Anthony Moral
+ * @license MIT
  */
 class Cookie
 {
+	const ANONYMISE_MODE_DISABLED = 0;
+	const ANONYMISE_MODE_CRYPT = 1;
+	const ANONYMISE_MODE_HASH = 2;
+	const ANONYMISE_MODES = [
+		self::ANONYMISE_MODE_DISABLED,
+		self::ANONYMISE_MODE_CRYPT,
+		self::ANONYMISE_MODE_HASH,
+	];
+
 	/** @var bool The enable/disable system status */
 	private $state = null;
+
+	/** @var int Anonymise status/mode */
+	private $anonymise = self::ANONYMISE_MODE_DISABLED;
 
 	/** @var string The cookie path */
 	private $path = '';
@@ -34,8 +48,11 @@ class Cookie
 	/** @var string The key for encrypt cookie content */
 	private $crypt = '';
 
+	/** @var string The salt for anonymise hash mode */
+	private $salt = '';
+
 	/**
-	 * ALIAS Encrypt
+	 * Alias encrypt
 	 *
 	 * @param string $text
 	 * @return string
@@ -46,7 +63,7 @@ class Cookie
 	}
 
 	/**
-	 * ALIAS Decrypt
+	 * Alias decrypt
 	 *
 	 * @param string $cipher
 	 * @return string
@@ -57,6 +74,65 @@ class Cookie
 	}
 
 	/**
+	 * Hash cookie name
+	 *
+	 * @param string $name
+	 * @return string
+	 */
+	private function hash(string $name): string
+	{
+		return sha1($name . $this->salt);
+	}
+
+	/**
+	 * Retrieve the real name of anonymous cookie
+	 *
+	 * @param string $name
+	 * @return string
+	 */
+	private function getAnonymous(string $name): string
+	{
+		switch ($this->anonymise)
+		{
+			case self::ANONYMISE_MODE_DISABLED:
+				return $name;
+			case self::ANONYMISE_MODE_CRYPT:
+				foreach (array_keys($_COOKIE) as $key) {
+					if($this->decrypt($key) === $name) {
+						return $key;
+					}
+				}
+				return '';
+			case self::ANONYMISE_MODE_HASH:
+				return $this->hash($name);
+			default:
+				return '';
+		}
+	}
+
+	/**
+	 * Set name for anonymous cookie
+	 *
+	 * @param string $name
+	 * @return string
+	 */
+	private function setAnonymous(string $name): string
+	{
+		switch ($this->anonymise)
+		{
+			case self::ANONYMISE_MODE_DISABLED:
+				return $name;
+			case self::ANONYMISE_MODE_CRYPT:
+				$this->delete($name);
+				return $this->encrypt($name);
+			case self::ANONYMISE_MODE_HASH:
+				return $this->hash($name);
+			default:
+				return '';
+		}
+	}
+
+	/**
 	 * Cookie constructor.
 	 *
 	 * @param string $crypt [optional]
@@ -64,6 +140,7 @@ class Cookie
 	 * @param string $domain [optional]
 	 * @param bool $secure [optional]
 	 * @param bool $httponly [optional]
+	 * @return void
 	 */
 	public function __construct(string $crypt = '', string $path = '', string $domain = '', bool $secure = false, bool $httponly = false)
 	{
@@ -76,9 +153,27 @@ class Cookie
 	}
 
 	/**
-	 * SETTER System Status
+	 * Anonymise cookie
 	 *
-	 * @param string $crypt
+	 * @param int $mode [optional]
+	 * @param string $salt [optional]
+	 * @return $this
+	 */
+	public function anonymize(int $mode = self::ANONYMISE_MODE_DISABLED, string $salt = null): Cookie
+	{
+		if(in_array($mode, self::ANONYMISE_MODES, true)) {
+			$this->anonymise = $mode;
+		}
+		if(null !== $salt) {
+			$this->salt = $salt;
+		}
+		return $this;
+	}
+
+	/**
+	 * Set system status
+	 *
+	 * @param bool $state
 	 * @return Cookie
 	 */
 	public function setState(bool $state): Cookie
@@ -88,9 +183,8 @@ class Cookie
 	}
 
 	/**
-	 * SETTER Enable System Status
+	 * Enable system status
 	 *
-	 * @param string $crypt
 	 * @return Cookie
 	 */
 	public function enable(): Cookie
@@ -100,9 +194,8 @@ class Cookie
 	}
 
 	/**
-	 * SETTER Disable System Status
+	 * Disable system status
 	 *
-	 * @param string $crypt
 	 * @return Cookie
 	 */
 	public function disable(): Cookie
@@ -112,7 +205,7 @@ class Cookie
 	}
 
 	/**
-	 * SETTER Crypt Key
+	 * Set crypt key
 	 *
 	 * @param string $crypt
 	 * @return Cookie
@@ -124,7 +217,7 @@ class Cookie
 	}
 
 	/**
-	 * SETTER Cookie Path
+	 * Set cookie path
 	 *
 	 * @param string $path
 	 * @return Cookie
@@ -136,7 +229,7 @@ class Cookie
 	}
 
 	/**
-	 * SETTER Cookie Domain
+	 * Set cookie domain
 	 *
 	 * @param string $domain
 	 * @return Cookie
@@ -148,7 +241,7 @@ class Cookie
 	}
 
 	/**
-	 * SETTER Cookie Secure
+	 * Set cookie secure
 	 *
 	 * @param bool $secure
 	 * @return Cookie
@@ -160,7 +253,7 @@ class Cookie
 	}
 
 	/**
-	 * SETTER Cookie Http Only
+	 * Set cookie http only
 	 *
 	 * @param bool $httponly
 	 * @return Cookie
@@ -172,21 +265,21 @@ class Cookie
 	}
 
 	/**
-	 * GET
+	 * Get cookie value
 	 *
 	 * @param string $name
 	 * @return string
 	 */
 	public function get(string $name): string
 	{
-		if(!$this->state) {
+		if(!$this->state || !$name || !($key = $this->getAnonymous($name))) {
 			return '';
 		}
-	    return !$name || !isset($_COOKIE[$name]) ? '' : (string) $_COOKIE[$name];
+		return strval($_COOKIE[$key] ?? '');
 	}
 
 	/**
-	 * SET
+	 * Set cookie
 	 *
 	 * @param string $name
 	 * @param string $value
@@ -195,44 +288,38 @@ class Cookie
 	 */
 	public function set(string $name, string $value, int $expire = 0): bool
 	{
-	    # Empty or disabled
-	    if (!$this->state || !$name) {
+	    if (!$this->state || !$name || !($key = $this->setAnonymous($name))) {
 	    	return false;
 	    }
 
-	    # Set
-		$_COOKIE[$name] = $value;
-	    return setcookie($name, $value, $expire, $this->path, $this->domain, $this->secure, $this->httponly);
+		$_COOKIE[$key] = $value;
+	    return setcookie($key, $value, $expire, $this->path, $this->domain, $this->secure, $this->httponly);
 	}
 
 	/**
-	 * GET SAFE
+	 * Get crypted cookie value
 	 *
 	 * @param string $name
 	 * @return string
 	 */
 	public function getSafe(string $name): string
 	{
-	    # Empty or disabled
-	    if (!$this->state || !$name || !isset($_COOKIE[$name])) {
+	    if (!$this->state || !$name || !($key = $this->getAnonymous($name)) || !isset($_COOKIE[$key])) {
 	    	return '';
 	    }
 
-	    # Decrypt
 	    try {
-	        $value = $this->decrypt($_COOKIE[$name]);
+	        $value = $this->decrypt($_COOKIE[$key]);
 	    }
 	    catch(Exception $e) {
 			$value = '';
-	        $this->delete($name);
+	        $this->delete($key);
 	    }
-
-	    # Decoded value
 	    return $value;
 	}
 
 	/**
-	 * SET SAFE
+	 * Set crypted cookie
 	 *
 	 * @param string $name
 	 * @param string $value
@@ -241,38 +328,36 @@ class Cookie
 	 */
 	public function setSafe(string $name, string $value, int $expire = 0): bool
 	{
-		# Empty or disabled
-	    if (!$this->state || !$name) {
+	    if (!$this->state || !$name || !($key = $this->setAnonymous($name))) {
 	    	return false;
 	    }
 
-	    # Crypt
 	    try {
 			$ciphered = $this->encrypt($value);
 	    }
 	    catch(Exception $e) {
 			$ciphered = '';
-	        $this->delete($name);
+	        $this->delete($key);
 	    }
 
-	    # Set
-		$_COOKIE[$name] = $ciphered;
-	    return setcookie($name, $ciphered, $expire, $this->path, $this->domain, $this->secure, $this->httponly);
+		$_COOKIE[$key] = $ciphered;
+	    return setcookie($key, $ciphered, $expire, $this->path, $this->domain, $this->secure, $this->httponly);
 	}
 
 	/**
-	 * DELETE
+	 * Delete cookie
 	 *
 	 * @param string $name
 	 * @return bool
 	 */
 	public function delete(string $name): bool
 	{
-		if(!$this->state) {
+		if(!$this->state || !$name || !($key = $this->getAnonymous($name))) {
 			return false;
 		}
-	    $state = setcookie($name, false, time() - 3600, $this->path, $this->domain, $this->secure, $this->httponly);
-		unset($_COOKIE[$name]);
+
+	    $state = setcookie($key, false, time() - 3600, $this->path, $this->domain, $this->secure, $this->httponly);
+		unset($_COOKIE[$key]);
 		return $state;
 	}
 }
