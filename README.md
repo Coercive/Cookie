@@ -23,15 +23,18 @@ $cookie->setPath('/');
 $cookie->setDomain('.domain.extension');
 // etc...
 
-# PLAIN COOKIE
+# Option : anonymise -> cookie names are now sha1 + salt
+$cookie->anonymize(true, 'abcd1234');
+
+# Plain cookie
 $cookie->set('MyCookie', 'Hey ! This is an example cookie !', time() + 600);
 $var = $cookie->get('MyCookie');
 
-# SAFE COOKIE
+# Crypted cookie
 $cookie = new Cookie('My Password');
 $cookie->setSafe('MyCookie', 'Hey ! This is an example cookie !', time() + 600);
 $var = $cookie->getSafe('MyCookie');
 
-# DELETE COOKIE
+# Delete cookie
 $cookie->delete('MyCookie');
 ```
