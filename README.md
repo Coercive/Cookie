@@ -25,6 +25,8 @@ $cookie->setDomain('.domain.extension');
 
 # Option : anonymise -> cookie names are now sha1 + salt
 $cookie->anonymize(true, 'abcd1234');
+# You can prefix anonymised cookie : Hello_*************
+$cookie->anonymize(true, 'abcd1234', 'Hello_');
 
 # Plain cookie
 $cookie->set('MyCookie', 'Hey ! This is an example cookie !', time() + 600);
