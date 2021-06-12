@@ -17,7 +17,7 @@
     ],
     "require": {
         "php": ">=7",
-        "coercive/crypt": "1.*"
+        "defuse/php-encryption": "^2.3.1"
     },
     "autoload": {
         "psr-4": { "Coercive\\Security\\Cookie\\": "dist/" }

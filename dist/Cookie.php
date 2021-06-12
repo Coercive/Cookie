@@ -1,8 +1,8 @@
 <?php
 namespace Coercive\Security\Cookie;
 
+use Defuse\Crypto\Crypto;
 use Exception;
-use Coercive\Security\Crypt\Crypt;
 
 /**
  * Cookie
@@ -10,7 +10,6 @@ use Coercive\Security\Crypt\Crypt;
  * One Cookie to rule them all.
  *
  * @package Coercive\Security\Cookie
- * @link https://github.com/Coercive/Crypt
  *
  * @author Anthony Moral <contact@coercive.fr>
  * @copyright 2021 Anthony Moral
@@ -37,10 +36,13 @@ class Cookie
 	private $httponly = false;
 
 	/** @var string The key for encrypt cookie content */
-	private $crypt = '';
+	private $password = '';
 
 	/** @var string The salt for anonymise hash mode */
 	private $salt = '';
+
+	/** @var string The prefix visible in clearview before anonymised cookie name */
+	private $prefix = '';
 
 	/**
 	 * Alias encrypt
@@ -51,7 +53,7 @@ class Cookie
 	private function encrypt(string $text): string
 	{
 		try {
-			return Crypt::encrypt($text, Crypt::createNewKey($this->crypt));
+			return Crypto::encryptWithPassword($text, $this->password);
 		}
 		catch (Exception $e) {
 			return '';
@@ -67,7 +69,7 @@ class Cookie
 	private function decrypt(string $cipher)
 	{
 		try {
-			return Crypt::decrypt($cipher, Crypt::createNewKey($this->crypt));
+			return Crypto::decryptWithPassword($cipher, $this->password);
 		}
 		catch (Exception $e) {
 			return '';
@@ -82,7 +84,7 @@ class Cookie
 	 */
 	private function hash(string $name): string
 	{
-		return sha1($name . $this->salt);
+		return $this->prefix . sha1($name . $this->salt);
 	}
 
 	/**
@@ -99,16 +101,16 @@ class Cookie
 	/**
 	 * Cookie constructor.
 	 *
-	 * @param string $crypt [optional]
+	 * @param string $password [optional]
 	 * @param string $path [optional]
 	 * @param string $domain [optional]
 	 * @param bool $secure [optional]
 	 * @param bool $httponly [optional]
 	 * @return void
 	 */
-	public function __construct(string $crypt = '', string $path = '', string $domain = '', bool $secure = false, bool $httponly = false)
+	public function __construct(string $password = '', string $path = '', string $domain = '', bool $secure = false, bool $httponly = false)
 	{
-		$this->crypt = $crypt;
+		$this->password = $password;
 		$this->path = $path;
 		$this->domain = $domain;
 		$this->secure = $secure;
@@ -121,13 +123,17 @@ class Cookie
 	 *
 	 * @param bool $enable
 	 * @param string $salt [optional]
+	 * @param string $prefix [optional]
 	 * @return $this
 	 */
-	public function anonymize(bool $enable, string $salt = null): Cookie
+	public function anonymize(bool $enable, string $salt = null, string $prefix = null): Cookie
 	{
 		$this->anonymise = $enable;
 		if(null !== $salt) {
 			$this->salt = $salt;
+		}
+		if(null !== $prefix) {
+			$this->prefix = $prefix;
 		}
 		return $this;
 	}
@@ -174,7 +180,7 @@ class Cookie
 	 */
 	public function setCryptKey(string $crypt): Cookie
 	{
-		$this->crypt = $crypt;
+		$this->password = $crypt;
 		return $this;
 	}
 
